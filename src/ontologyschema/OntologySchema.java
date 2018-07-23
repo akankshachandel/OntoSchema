@@ -46,29 +46,53 @@ public class OntologySchema {
          * @param con
          */
     String serviceURI = "http://vulcan.cs.uga.edu/sparql";
-       Statement stm = con.createStatement();
-       String m = "INSERT INTO endpoint(endpoint) VALUES ('" + serviceURI + "') ";
-       stm.execute(m);
-       stm.close();
+//        Statement stm = con.createStatement();
+//        String m = "INSERT INTO endpoint(endpoint) VALUES ('" + serviceURI + "') ";
+//        stm.execute(m);
+//        stm.close();
 
       HashMap<String, Integer> hm = new HashMap();
 
-     classes(con, serviceURI, hm);
-      explicitClasses(con, serviceURI, hm);
-       objectProperty(con, serviceURI, hm);
-       dataProperty(con, serviceURI, hm);
-       explicitdataProperty(con, serviceURI, hm);
-       explicitobjProperty(con, serviceURI, hm);
-        subproperty(con);
-       hasdomain(con, serviceURI);
-        prefix(con, hm,serviceURI);
-        explicitDomainRangeObj(con,serviceURI);
+    classes(con, serviceURI, hm);
+     //explicitClasses(con, serviceURI, hm);
+        //objectProperty(con, serviceURI, hm);
+      //dataProperty(con, serviceURI, hm);
+       //explicitdataProperty(con, serviceURI, hm);
+       // explicitobjProperty(con, serviceURI, hm);
+        //subproperty(con);
+       //hasdomain(con, serviceURI);    
+      //prefix(con, hm,serviceURI);
+       // explicitDomainRangeObj(con,serviceURI);
 
         con.close();
     }
 
     public static void classes(Connection con, String serviceURI, HashMap<String, Integer> hm) {
 
+       // String blnk="INSERT INTO class(class_URI,label,comment,instance_count,endpoint) values('http://localhost/blank','blank','represents blank nodes','0',"+serviceURI+")";
+       String blnk="INSERT INTO `ontoschema`.`class`\n" +
+"(`class_URI`,\n" +
+"`label`,\n" +
+"`comment`,\n" +
+"`instance_count`,\n" +
+"`endpoint`)\n" +
+"VALUES\n" +
+"('http://localhost/blank',\n" +
+"'Blank',\n" +
+"'Represents blank nodes',\n" +
+"'0','" +serviceURI+
+"')"; 
+       try{
+        Statement bl = con.createStatement();
+         bl.execute(blnk);
+         bl.close();
+        }
+        catch(Exception e)
+        {
+             e.printStackTrace();
+                System.out.printf(e.getMessage());
+        }
+        
         String query = "PREFIX    rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
                 + "select distinct ?class ?label ?comment where{[] a ?class.\n"
                 + "OPTIONAL { ?class rdfs:label ?label .\n"
@@ -354,7 +378,8 @@ public class OntologySchema {
                     qry.append(", comment ");
                 }
 
-                qry.append(",property_type,endpoint) values('").append(prop.toString()).append("'");
+               qry.append(",property_type,endpoint) values('").append(prop.toString()).append("'");
+           
 
                 if (label != null) {
                     qry.append(",'").append(label.toString()).append("'");
@@ -364,6 +389,7 @@ public class OntologySchema {
                     qry.append(",'").append(comment.toString()).append("'");
                 }
                 qry.append(",'data'").append(",'").append(serviceURI).append("')");
+               
                 System.out.println(qry.toString());
                 s.execute(qry.toString());
                 s.close();
@@ -404,7 +430,8 @@ public class OntologySchema {
 
                         Statement stm = con.createStatement();
 
-                        qrey.append("INSERT INTO triple_type(class_URI,property_URI,property_triple_type,triple_type,endpoint) values(");
+                     //   qrey.append("INSERT INTO data_triple_type(class_URI,property_URI,property_triple_type,triple_type,endpoint) values(");
+                    qrey.append("INSERT INTO data_triple_type(class_URI,property_URI,property_triple_type,endpoint) values(");
 
                                          
 
@@ -421,9 +448,9 @@ public class OntologySchema {
                         }
                         
                         else
-                               qrey.append("'http://localhost/blank',");
-                        
-                        qrey.append(",'data'").append(",'").append(serviceURI).append("')");;
+                               qrey.append(",'http://localhost/blank'");
+                       // qrey.append(",'data'").append(",'").append(serviceURI).append("')");
+                        qrey.append(",'").append(serviceURI).append("')");
                         System.out.println(qrey.toString());
                         stm.execute(qrey.toString());
                         stm.close();
@@ -436,7 +463,7 @@ public class OntologySchema {
                             inst.append(" ?o a <").append(range.toString()).append(">.\n");
                         }
                         inst.append("}");
-
+                        System.out.println(inst.toString());
                         QueryExecution qre = QueryExecutionFactory.sparqlService(serviceURI, inst.toString());
                         ResultSet rst = qre.execSelect();
                         //   ResultSetFormatter.out(System.out, r);
@@ -448,7 +475,7 @@ public class OntologySchema {
                                 num = num.substring(0, num.indexOf("^"));
                                 System.out.println(instn.toString());
                                 Statement stmt = con.createStatement();
-                                StringBuilder m = new StringBuilder("UPDATE triple_type SET instance_count='");
+                                StringBuilder m = new StringBuilder("UPDATE data_triple_type SET instance_count='");
                                 m.append(num).append("' WHERE");
                                 if (domain != null && domain.toString() != null) {
                                     m.append(" class_URI='").append(domain.toString()).append("' AND");
@@ -602,7 +629,7 @@ public class OntologySchema {
                         // System.out.println(classes.toString()+label.toString()!=null?label.toString():"hello1"+comment.toString()!=null?comment.toString():"comment");
                         Statement stm = con.createStatement();
 
-                        qrey.append("INSERT INTO triple_type(class_URI,property_URI,property_triple_type,triple_type,endpoint) values(");
+                        qrey.append("INSERT INTO object_triple_type(class_URI,property_URI,property_triple_type,endpoint) values(");
 
                                          
 
@@ -619,9 +646,10 @@ public class OntologySchema {
                         }
                         
                         else
-                               qrey.append("'http://localhost/blank',");
+                               qrey.append(",'http://localhost/blank'");
 
-                        qrey.append(",'object'").append(",'").append(serviceURI).append("')");
+                      //  qrey.append(",'object'").append(",'").append(serviceURI).append("')");
+                      qrey.append(",'").append(serviceURI).append("')");
                         System.out.println(qrey.toString());
                         stm.execute(qrey.toString());
                         stm.close();
@@ -648,7 +676,7 @@ public class OntologySchema {
                                 Statement stmt = con.createStatement();
                                // try (Statement stmt = con.createStatement()) {
                                try{
-                                    StringBuilder m = new StringBuilder("UPDATE triple_type SET instance_count='");
+                                    StringBuilder m = new StringBuilder("UPDATE object_triple_type SET instance_count='");
                                     m.append(num).append("' WHERE");
                                     if (domain != null && domain.toString() != null) {
                                         m.append(" class_URI='").append(domain.toString()).append("' AND");
@@ -784,7 +812,7 @@ public class OntologySchema {
                         // System.out.println(classes.toString()+label.toString()!=null?label.toString():"hello1"+comment.toString()!=null?comment.toString():"comment");
                         Statement stm = con.createStatement();
 
-                         qrey.append("INSERT INTO triple_type(class_URI,property_URI,property_triple_type,triple_type,endpoint) values(");
+                         qrey.append("INSERT INTO object_triple_type(class_URI,property_URI,property_triple_type,endpoint) values(");
 
                                          
 
@@ -801,9 +829,9 @@ public class OntologySchema {
                         }
                         
                         else
-                               qrey.append("'http://localhost/blank',");
-
-                        qrey.append(",'object'").append(",'").append(serviceURI).append("')");
+                               qrey.append(",'http://localhost/blank'");
+                            qrey.append(",'").append(serviceURI).append("')");
+                       // qrey.append(",'object'").append(",'").append(serviceURI).append("')");
                         System.out.println(qrey.toString());
                         stm.execute(qrey.toString());
                         stm.close();
@@ -828,7 +856,7 @@ public class OntologySchema {
                                 num = num.substring(0, num.indexOf("^"));
                                 System.out.println(instn.toString());
                                 try (Statement stmt = con.createStatement()) {
-                                    StringBuilder m = new StringBuilder("UPDATE triple_type SET instance_count='");
+                                    StringBuilder m = new StringBuilder("UPDATE object_triple_type SET instance_count='");
                                     m.append(num).append("' WHERE");
                                     if (domain != null && domain.toString() != null) {
                                         m.append(" class_URI='").append(domain.toString()).append("' AND");
@@ -956,7 +984,7 @@ public class OntologySchema {
 
                         Statement stm = con.createStatement();
 
-                         qrey.append("INSERT INTO triple_type(class_URI,property_URI,property_triple_type,triple_type,endpoint) values(");
+                         qrey.append("INSERT INTO data_triple_type(class_URI,property_URI,property_triple_type,endpoint) values(");
 
                                          
 
@@ -973,9 +1001,10 @@ public class OntologySchema {
                         }
                         
                         else
-                               qrey.append("'http://localhost/blank',");
-
-                        qrey.append(",'data'").append(",'").append(serviceURI).append("')");
+                               qrey.append(",'http://localhost/blank'");
+                       
+                        qrey.append(",'").append(serviceURI).append("')");
+                      //  qrey.append(",'data'").append(",'").append(serviceURI).append("')");
                         System.out.println(qrey.toString());
                         stm.execute(qrey.toString());
                         stm.close();
@@ -1000,7 +1029,7 @@ public class OntologySchema {
                                 num = num.substring(0, num.indexOf("^"));
                                 System.out.println(instn.toString());
                                 Statement stmt = con.createStatement();
-                                StringBuilder m = new StringBuilder("UPDATE triple_type SET instance_count='");
+                                StringBuilder m = new StringBuilder("UPDATE data_triple_type SET instance_count='");
                                 m.append(num).append("' WHERE");
                                 if (domain != null && domain.toString() != null) {
                                     m.append(" class_URI='").append(domain.toString()).append("' AND");
