@@ -29,7 +29,14 @@ public class graphViz {
      {
          createObjectGraph(con, ep);
       createDataGraph(con, ep);
-      g.display();
+         
+          PageRank pr2 = new PageRank(g, new Random());
+        pr2.compute();
+        System.out.println(pr2.getRank(0));
+         MaxInEdgeDegreeAlgorithm ada=new   MaxInEdgeDegreeAlgorithm();
+       	int x=ada.getMaxDegree(g, Grph.TYPE.edge, Grph.DIRECTION.in_out) ;
+            System.out.println(x);
+      //g.display();
      }
 
 
