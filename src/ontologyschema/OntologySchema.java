@@ -1,4 +1,4 @@
-package Summary;
+package ontologyschema;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -21,7 +21,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
-import static Summary.graphViz.visualize;
+import static ontologyschema.graphViz.visualize;
 
 
 /**
@@ -57,21 +57,21 @@ public class OntologySchema {
         //        stm.execute(m);
         //        stm.close();
 
-        //HashMap<String, Integer> hm = new HashMap();
+       HashMap<String, Integer> hm = new HashMap();
 
        // classes(con, serviceURI, hm);
         //explicitClasses(con, serviceURI, hm);
-        //objectProperty(con, serviceURI, hm);
+       objectProperty(con, serviceURI, hm);
         //dataProperty(con, serviceURI, hm);
         //explicitdataProperty(con, serviceURI, hm);
-        // explicitobjProperty(con, serviceURI, hm);
+        explicitobjProperty(con, serviceURI, hm);
         //subproperty(con);
         //hasdomain(con, serviceURI);    
         //prefix(con, hm,serviceURI);
         // explicitDomainRangeObj(con,serviceURI);
 
      //   ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-      visualize(con, serviceURI);           //create graph and visualize the extracted summarized graph
+      //visualize(con, serviceURI);           //create graph and visualize the extracted summarized graph
       
 
         con.close();
@@ -162,6 +162,7 @@ public class OntologySchema {
                 qry.append(",'").append(serviceURI).append("')");
                 s.execute(qry.toString());
                 s.close();
+                int insc=0;
                 String ins = "SELECT( COUNT (?instance ) AS ?in )WHERE { ?instance a <" + classes.toString() + "> }";
                 QueryExecution qr = QueryExecutionFactory.sparqlService(serviceURI, ins);
                 ResultSet r = qr.execSelect();
@@ -171,14 +172,41 @@ public class OntologySchema {
                     RDFNode inst = sol.get("in");
                     String num = inst.toString();
                     num = num.substring(0, num.indexOf("^"));
+                    insc=Integer.parseInt(num);
                     System.out.println(inst.toString());
                     Statement st = con.createStatement();
-                    String m = "UPDATE class SET instance_count='" + num + "' WHERE class_URI='" + classes.toString() + "'";
+                    String m = "UPDATE class SET instance_count='" + num + "' WHERE class_URI='" + classes.toString() +  "' AND endpoint='"+serviceURI+"'";
                     //x=x+1;
                     //String m = "UPDATE class SET instance_count='"+x+"' WHERE class_URI='" + classes.toString() + "'";
                     st.execute(m);
                     st.close();
                 }
+                
+                String dpavg = "SELECT ( COUNT (?object ) AS ?NUMBER ) \n"       //calulating data property per instance for a class
+                        + "                    	WHERE {\n"
+                        + "?entity a <" + classes.toString() + "> . \n"
+                        + "?entity ?property ?object.\n"
+                        + "   	filter(isLiteral(?object))\n"
+                        + "}";
+                       
+                QueryExecution dpq = QueryExecutionFactory.sparqlService(serviceURI, dpavg);
+                ResultSet drs = dpq.execSelect();
+                //   ResultSetFormatter.out(System.out, r);
+                while (drs.hasNext()) {
+                    final QuerySolution sol = drs.nextSolution();           //add endpoint in updater
+                    RDFNode inst = sol.get("NUMBER");
+                    String num = inst.toString();
+                    num = num.substring(0, num.indexOf("^"));
+                    int dp=Integer.parseInt(num);
+                    float f=((float)dp)/insc;
+                    System.out.println(inst.toString());
+                    Statement st = con.createStatement();
+                    String updater = "UPDATE class SET dpavg='" + f + "' WHERE class_URI='" + classes.toString() + "' AND endpoint='"+serviceURI+"'";
+                   st.execute(updater);
+                    st.close();
+                }
+                
+                
                 String superc = "PREFIX     rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
                         + "PREFIX    rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
                         + "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n"
@@ -610,7 +638,8 @@ public class OntologySchema {
 
                 String dr = "SELECT DISTINCT ?domain ?range \n"
                         + "                        WHERE { \n"
-                        + "   ?subject <" + prop.toString() + "> ?object .\n"
+                        + "   ?domain <" + prop.toString() + "> ?object .\n"
+                         +"?subject a ?domain."
                         + " ?object a ?range.\n"
                         + " filter(isIRI(?object) ||  isBlank(?object))   "
                         + " }";
@@ -731,8 +760,11 @@ public class OntologySchema {
             RDFNode prop = soln.get("property");
             RDFNode label = soln.get("label");
             RDFNode comment = soln.get("comment");
-
-            String pre = prop.toString();
+            
+             String pre = prop.toString();
+            if(pre=="http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                continue;
+                       
             if (pre.contains("#")) {
                 pre = pre.substring(0, pre.lastIndexOf("#") + 1);
             } else {
@@ -789,6 +821,7 @@ public class OntologySchema {
                 String dr = "SELECT DISTINCT ?domain ?range \n"
                         + "                        WHERE { \n"
                         + "   ?subject <" + prop.toString() + "> ?object .\n"
+                        +"?subject a ?domain."
                         + " ?object a ?range.\n"
                         + " filter(isIRI(?object) ||  isBlank(?object))   "
                         + " }";
@@ -961,7 +994,7 @@ public class OntologySchema {
 
                 String dr = "SELECT DISTINCT ?domain (datatype(?object) as ?range) \n"
                         + "                        WHERE { \n"
-                        + "   ?subject <" + prop.toString() + "> ?object .\n"
+                        + "   ?domain <" + prop.toString() + "> ?object .\n"
                         + "   ?subject a ?domain .\n"
                         + "     Filter isLiteral(?object) \n"
                         + " }";
